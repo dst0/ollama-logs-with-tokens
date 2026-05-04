@@ -26,6 +26,18 @@ func captureLogOutput(t *testing.T) *bytes.Buffer {
 	return &buf
 }
 
+// findLogRecord returns the first log line whose msg field matches the given
+// message, or the empty string if no such line is found.
+func findLogRecord(output, msg string) string {
+	needle := `msg="` + msg + `"`
+	for _, line := range strings.Split(output, "\n") {
+		if strings.Contains(line, needle) {
+			return line
+		}
+	}
+	return ""
+}
+
 func newInferenceLogTestServer(t *testing.T) (s *Server, createModel func(name string)) {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
@@ -120,18 +132,20 @@ func TestGenerateHandlerLogsRequestComplete(t *testing.T) {
 		t.Fatalf("expected status 200, got %d: %s", w.Code, w.Body.String())
 	}
 
-	logOutput := logs.String()
-	if !strings.Contains(logOutput, "request complete") {
-		t.Errorf("expected 'request complete' log entry, got:\n%s", logOutput)
+	record := findLogRecord(logs.String(), "request complete")
+	if record == "" {
+		t.Fatalf("expected 'request complete' log record, got:\n%s", logs.String())
 	}
-	if !strings.Contains(logOutput, "model=logtest") {
-		t.Errorf("expected model=logtest in log, got:\n%s", logOutput)
-	}
-	if !strings.Contains(logOutput, "prompt_eval_count=42") {
-		t.Errorf("expected prompt_eval_count=42 in log, got:\n%s", logOutput)
-	}
-	if !strings.Contains(logOutput, "eval_count=10") {
-		t.Errorf("expected eval_count=10 in log, got:\n%s", logOutput)
+	for _, want := range []string{
+		"model=logtest",
+		"prompt_eval_count=42",
+		"prompt_eval_duration=500ms",
+		"eval_count=10",
+		"eval_duration=200ms",
+	} {
+		if !strings.Contains(record, want) {
+			t.Errorf("expected %q in 'request complete' record, got:\n%s", want, record)
+		}
 	}
 }
 
@@ -153,17 +167,19 @@ func TestChatHandlerLogsRequestComplete(t *testing.T) {
 		t.Fatalf("expected status 200, got %d: %s", w.Code, w.Body.String())
 	}
 
-	logOutput := logs.String()
-	if !strings.Contains(logOutput, "request complete") {
-		t.Errorf("expected 'request complete' log entry, got:\n%s", logOutput)
+	record := findLogRecord(logs.String(), "request complete")
+	if record == "" {
+		t.Fatalf("expected 'request complete' log record, got:\n%s", logs.String())
 	}
-	if !strings.Contains(logOutput, "model=logtest-chat") {
-		t.Errorf("expected model=logtest-chat in log, got:\n%s", logOutput)
-	}
-	if !strings.Contains(logOutput, "prompt_eval_count=42") {
-		t.Errorf("expected prompt_eval_count=42 in log, got:\n%s", logOutput)
-	}
-	if !strings.Contains(logOutput, "eval_count=10") {
-		t.Errorf("expected eval_count=10 in log, got:\n%s", logOutput)
+	for _, want := range []string{
+		"model=logtest-chat",
+		"prompt_eval_count=42",
+		"prompt_eval_duration=500ms",
+		"eval_count=10",
+		"eval_duration=200ms",
+	} {
+		if !strings.Contains(record, want) {
+			t.Errorf("expected %q in 'request complete' record, got:\n%s", want, record)
+		}
 	}
 }
