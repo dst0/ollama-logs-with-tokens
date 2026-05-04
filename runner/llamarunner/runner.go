@@ -104,6 +104,11 @@ type Sequence struct {
 	generationDuration time.Duration
 	numDecoded         int
 	numPromptInputs    int
+
+	// lastPrefillLogPct is the last prefill-progress percentage that was logged.
+	// It gates slog.Info("prefill in progress") to emit at most once per 10% of
+	// prompt-token progress, keeping log volume bounded regardless of prompt length.
+	lastPrefillLogPct int
 }
 
 type NewSequenceParams struct {
@@ -513,7 +518,13 @@ func (s *Server) processBatch(tokenBatch *llama.Batch, embedBatch *llama.Batch) 
 		// don't sample prompt processing
 		if len(seq.inputs) != 0 {
 			seq.processingDuration += time.Since(t)
-			slog.Info("prefill in progress", "processed", len(seq.cache.Inputs), "total", seq.numPromptInputs)
+			if seq.numPromptInputs > 0 {
+				pct := len(seq.cache.Inputs) * 100 / seq.numPromptInputs
+				if pct >= seq.lastPrefillLogPct+10 {
+					slog.Info("prefill in progress", "processed", len(seq.cache.Inputs), "total", seq.numPromptInputs)
+					seq.lastPrefillLogPct = pct
+				}
+			}
 			continue
 		}
 
