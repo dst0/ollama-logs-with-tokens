@@ -1,49 +1,49 @@
 package server
 
 import (
-"bytes"
-"log/slog"
-"strings"
-"testing"
-"time"
+	"bytes"
+	"log/slog"
+	"strings"
+	"testing"
+	"time"
 
-"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin"
 
-"github.com/ollama/ollama/api"
-"github.com/ollama/ollama/fs/ggml"
-"github.com/ollama/ollama/llm"
-"github.com/ollama/ollama/ml"
+	"github.com/ollama/ollama/api"
+	"github.com/ollama/ollama/fs/ggml"
+	"github.com/ollama/ollama/llm"
+	"github.com/ollama/ollama/ml"
 )
 
 // captureLogOutput redirects the default slog logger to a buffer for the
 // duration of the test and restores the original logger on cleanup.
 func captureLogOutput(t *testing.T) *bytes.Buffer {
-t.Helper()
-var buf bytes.Buffer
-old := slog.Default()
-slog.SetDefault(slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug})))
-t.Cleanup(func() { slog.SetDefault(old) })
-return &buf
+	t.Helper()
+	var buf bytes.Buffer
+	old := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug})))
+	t.Cleanup(func() { slog.SetDefault(old) })
+	return &buf
 }
 
 func newInferenceLogTestServer(t *testing.T) (s *Server, createModel func(name string)) {
-t.Helper()
-gin.SetMode(gin.TestMode)
-t.Setenv("OLLAMA_CONTEXT_LENGTH", "4096")
+	t.Helper()
+	gin.SetMode(gin.TestMode)
+	t.Setenv("OLLAMA_CONTEXT_LENGTH", "4096")
 
-mock := &mockRunner{
-CompletionResponse: llm.CompletionResponse{
-Done:               true,
-DoneReason:         llm.DoneReasonStop,
-PromptEvalCount:    42,
-PromptEvalDuration: 500 * time.Millisecond,
-EvalCount:          10,
-EvalDuration:       200 * time.Millisecond,
-},
-}
+	mock := &mockRunner{
+		CompletionResponse: llm.CompletionResponse{
+			Done:               true,
+			DoneReason:         llm.DoneReasonStop,
+			PromptEvalCount:    42,
+			PromptEvalDuration: 500 * time.Millisecond,
+			EvalCount:          10,
+			EvalDuration:       200 * time.Millisecond,
+		},
+	}
 
-srv := &Server{
-sched: &Scheduler{
+	srv := &Server{
+		sched: &Scheduler{
 pendingReqCh:    make(chan *LlmRequest, 1),
 finishedReqCh:   make(chan *LlmRequest, 1),
 expiredCh:       make(chan *runnerRef, 1),
