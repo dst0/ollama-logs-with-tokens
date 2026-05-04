@@ -707,6 +707,7 @@ func (s *Server) computeBatch(activeBatch batchState) {
 			if !s.cache.enabled {
 				panic("caching disabled but unable to fit entire input in a batch")
 			}
+			slog.Info("prefill in progress", "processed", len(seq.cache.Inputs), "total", seq.numPromptInputs)
 			continue
 		}
 

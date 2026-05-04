@@ -513,6 +513,7 @@ func (s *Server) processBatch(tokenBatch *llama.Batch, embedBatch *llama.Batch) 
 		// don't sample prompt processing
 		if len(seq.inputs) != 0 {
 			seq.processingDuration += time.Since(t)
+			slog.Info("prefill in progress", "processed", len(seq.cache.Inputs), "total", seq.numPromptInputs)
 			continue
 		}
 
