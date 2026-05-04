@@ -714,7 +714,11 @@ func (s *Server) computeBatch(activeBatch batchState) {
 			}
 			now := time.Now()
 			if now.Sub(seq.lastPrefillLogAt) >= 500*time.Millisecond {
-				slog.Info("prefill in progress", "processed", len(seq.cache.Inputs), "total", seq.numPromptInputs)
+				processedPromptInputs := len(seq.cache.Inputs) - len(seq.inputs)
+				if processedPromptInputs < 0 {
+					processedPromptInputs = 0
+				}
+				slog.Info("prefill in progress", "processed", processedPromptInputs, "total", seq.numPromptInputs)
 				seq.lastPrefillLogAt = now
 			}
 			continue
